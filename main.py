@@ -7,16 +7,23 @@ TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 
 def generate_with_gemini(prompt: str) -> str:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    # 1. الرابط بدون ?key لأنه يعتبر توكن أمان
+    url = "https://generativelanguage.googleapis.com/vbeta/models/gemini-1.5-flash:generateContent"
+    
+    # 2. إرسال المفتاح بالطريقة الصحيحة كـ Bearer Token بالـ Headers
     headers = {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {GEMINI_API_KEY}"
     }
+    
     payload = {
         "contents": [{
             "parts": [{"text": prompt}]
         }]
     }
+    
     res = requests.post(url, headers=headers, json=payload)
+    
     if res.status_code == 200:
         data = res.json()
         return data["candidates"][0]["content"]["parts"][0]["text"].strip()
@@ -30,32 +37,20 @@ def send_telegram(text):
 
 print("🔥 يتم توليد المحتوى الذكي...")
 
-# 1. أخبار
-feed = feedparser.parse('https://artificialintelligence-news.com/feed/')
-if feed.entries:
-    item = feed.entries[0]
-    prompt_news = f"""
-    Act as a viral, top-tier AI tech Twitter/X influencer.
-    Rewrite this news into a punchy, high-engagement tweet (max 280 chars) with 2 relevant hashtags and the link:
-    Title: {item.title}
-    Link: {item.link}
-    """
-    res_news = generate_with_gemini(prompt_news)
-    send_telegram(f"📰 *خبر تقني جديد*:\n\n{res_news}")
+# 1. أخبار تقنية
+try:
+    feed = feedparser.parse('https://artificialintelligence-news.com/feed/')
+    if feed.entries:
+        item = feed.entries[0]
+        prompt_news = f"""
+        Act as a viral, top-tier AI tech Twitter/X influencer.
+        Rewrite this news into a punchy, high-engagement tweet (max 280 chars) with 2 relevant hashtags and the link:
+        Title: {item.title}
+        Link: {item.link}
+        """
+        res_news = generate_with_gemini(prompt_news)
+        send_telegram(f"📰 *خبر تقني جديد*:\n\n{res_news}")
+except Exception as e:
+    print(f"Error in news: {e}")
 
-# 2. أداة ذكاء اصطناعي (أفلييت)
-prompt_ai_tool = """
-Act as a pro AI affiliate marketer on Twitter/X.
-Write a short, killer, high-converting tweet (max 240 chars) recommending an insane AI tool, with a strong call to action.
-"""
-res_tool = generate_with_gemini(prompt_ai_tool)
-send_telegram(f"🚀 *أداة ذكاء اصطناعي (أفلييت)*:\n\n{res_tool}")
-
-# 3. نكتة / meme تقني
-prompt_meme = """
-Act as a sarcastic, witty tech Twitter/X creator. Write a short, hilarious, ultra-relatable tech/programming joke or meme text.
-"""
-res_meme = generate_with_gemini(prompt_meme)
-send_telegram(f"🤖 *تغريدة خفيفة / نكتة تقنية*:\n\n{res_meme}")
-
-print("✅ تم إرسال اليومية كُلها بنجاح!")
+print("✅ تم إتمام العملية بنجاح!")
