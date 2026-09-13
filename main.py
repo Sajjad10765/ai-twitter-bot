@@ -1,38 +1,30 @@
 import os
 import feedparser
 import requests
+import google.generativeai as genai
 
+# جلب المفاتيح من الـ Secrets
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 
+# إعداد مفتاح جوجل بالطريقة الرسمية الصحيحة
+genai.configure(api_key=GEMINI_API_KEY)
+
 def generate_with_gemini(prompt: str) -> str:
-    # التصحيح هنا إضافة رقم 1 ليصبح v1beta
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {GEMINI_API_KEY}"
-    }
-    payload = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
-    }
-    
-    res = requests.post(url, headers=headers, json=payload)
-    print(f"📡 استجابة Gemini - الكود: {res.status_code}")
-    
-    if res.status_code == 200:
-        data = res.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    else:
-        raise Exception(f"Gemini API Error {res.status_code}: {res.text}")
+    # استخدام الموديل بالطريقة الرسمية للمكتبة
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    response = model.generate_content(prompt)
+    return response.text.strip()
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     res = requests.post(url, data={'chat_id': CHAT_ID, 'text': text, 'parse_mode': 'Markdown'})
     print(f"📡 استجابة Telegram - الكود: {res.status_code}")
+    print(f"📄 الرد: {res.text}")
     return res.json()
+
+print("🔥 جاري جلب الخبر وتوليده بواسطة الذكاء الاصطناعي...")
 
 try:
     feed = feedparser.parse('https://artificialintelligence-news.com/feed/')
@@ -45,9 +37,12 @@ try:
         Link: {item.link}
         """
         res_news = generate_with_gemini(prompt_news)
+        print("🤖 تم توليد النص بنجاح، جاري الإرسال للتيليجرام...")
         send_telegram(f"📰 *خبر تقني جديد*:\n\n{res_news}")
         print("✅ تم الإرسال إلى تيليجرام بنجاح!")
     else:
-        print("⚠️ لم يتم العثور على مقالات.")
+        print("⚠️ لم يتم العثور على مقالات في الـ RSS Feed.")
 except Exception as e:
-    print(f"❌ حدث خطأ: {e}")
+    print(f"❌ حدث خطأ رئيسي: {e}")
+
+print("✅ انتهى تشغيل السكربت.")
