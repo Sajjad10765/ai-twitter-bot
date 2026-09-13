@@ -3,7 +3,7 @@ import feedparser
 import requests
 import google.generativeai as genai
 
-# جلب المفاتيح من الـ Secrets
+# جلب المفاتيح من الـ Secrets بشكل صحيح تماماً
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
@@ -12,7 +12,6 @@ CHAT_ID = os.environ.get('CHAT_ID')
 genai.configure(api_key=GEMINI_API_KEY)
 
 def generate_with_gemini(prompt: str) -> str:
-    # استخدام الموديل بالطريقة الرسمية للمكتبة
     model = genai.GenerativeModel('gemini-1.5-flash')
     response = model.generate_content(prompt)
     return response.text.strip()
